@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1d2b24">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Dev Log</title>
+<style>
+:root{--bg:#f3f1ea;--card:#fffdf8;--ink:#1d2b24;--mute:#6b766f;--line:#ddd8c9;--acc:#2f7d5b;--acc2:#e9f2ec;--warn:#b4432f}
+@media(prefers-color-scheme:dark){:root{--bg:#141a17;--card:#1c2420;--ink:#e8efe9;--mute:#8d9a92;--line:#2c3732;--acc:#5fc79a;--acc2:#22322a;--warn:#ef8a74}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 Georgia,'Iowan Old Style',serif;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+.wrap{max-width:720px;margin:0 auto;padding:18px 16px 60px}
+h1{font-size:1.7rem;margin:.2em 0 0;letter-spacing:-.01em}
+.sub{color:var(--mute);font-size:.92rem;margin-bottom:16px}
+.stats{display:flex;gap:10px;margin:14px 0}
+.stat{flex:1;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.stat b{display:block;font-size:1.4rem}.stat span{color:var(--mute);font-size:.8rem}
+label{display:block;font-size:.85rem;color:var(--mute);margin:12px 0 4px;font-family:system-ui,sans-serif}
+input,textarea{width:100%;font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px}
+textarea{min-height:84px;resize:vertical}
+input:focus,textarea:focus,button:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+.row{display:flex;gap:10px}.row>*{flex:1}
+button{font:600 .95rem system-ui,sans-serif;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:10px 16px;border-radius:8px;cursor:pointer}
+button.p{background:var(--acc);border-color:var(--acc);color:#fff}
+.bar{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;align-items:center}
+.msg{color:var(--acc);font:.85rem system-ui,sans-serif}
+hr{border:0;border-top:1px solid var(--line);margin:28px 0 14px}
+.entry{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;margin:10px 0}
+.entry h3{margin:0;font-size:1.05rem}.meta{color:var(--mute);font:.8rem system-ui,sans-serif}
+.entry p{margin:.5em 0 0;white-space:pre-wrap}.entry .k{font:600 .75rem system-ui,sans-serif;color:var(--acc)}
+.tag{display:inline-block;background:var(--acc2);color:var(--acc);border-radius:99px;padding:1px 9px;font:.78rem system-ui,sans-serif;margin:4px 4px 0 0}
+.act{margin-top:8px}.act button{padding:4px 10px;font-weight:500;font-size:.8rem}.del{color:var(--warn)}
+.cyc{font:.95rem system-ui,sans-serif}.pb{height:8px;background:var(--line);border-radius:9px;margin:8px 0;overflow:hidden}.pb i{display:block;height:100%;background:var(--acc)}
+.cycle{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin:14px 0}
+.past{margin-top:12px;font:.85rem system-ui,sans-serif;color:var(--mute)}.past div{display:flex;justify-content:space-between;align-items:center;padding:4px 0}.past button{padding:3px 10px;font-size:.8rem}
+#report{display:none}
+@media print{.wrap{display:none}body{background:#fff}#report{display:block;color:#000;background:#fff;font:11.5pt/1.5 Georgia,serif}#report h1{font-size:20pt;margin:0}#report h3{margin:0}.re{break-inside:avoid;border-bottom:1px solid #bbb;padding:10px 0}.re p{margin:.3em 0;white-space:pre-wrap}}
+.empty{color:var(--mute);text-align:center;padding:24px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Dev Log</h1>
+  <div class="sub">One entry a day. Saved on this device.</div>
+  <div class="stats">
+    <div class="stat"><b id="sStreak">0</b><span>day streak</span></div>
+    <div class="stat"><b id="sTotal">0</b><span>entries</span></div>
+    <div class="stat"><b id="sHours">0</b><span>hours coded</span></div>
+  </div>
+
+  <div class="cycle" id="cycle"></div>
+
+  <div class="row">
+    <div><label for="date">Date</label><input type="date" id="date"></div>
+    <div><label for="hours">Hours coded</label><input type="number" id="hours" min="0" step="0.5" placeholder="2.5"></div>
+  </div>
+  <label for="title">What did you work on?</label>
+  <input id="title" placeholder="e.g. DeepGuard training loop">
+  <label for="did">What I did</label>
+  <textarea id="did"></textarea>
+  <label for="learned">What I learned</label>
+  <textarea id="learned"></textarea>
+  <label for="blockers">Blockers / bugs</label>
+  <textarea id="blockers"></textarea>
+  <label for="next">Next step</label>
+  <input id="next">
+  <label for="tags">Tags (comma separated)</label>
+  <input id="tags" placeholder="python, pytorch, react">
+  <div class="bar">
+    <button class="p" id="save">Save entry</button>
+    <button id="clear">Clear form</button>
+    <span class="msg" id="msg"></span>
+  </div>
+
+  <hr>
+  <input id="search" type="search" placeholder="Search entries or tags">
+  <div id="list"></div>
+
+  <hr>
+  <div class="bar">
+    <button id="exp">Export backup</button>
+    <button id="imp">Import backup</button>
+    <input type="file" id="file" accept="application/json" hidden>
+  </div>
+  <p class="meta">Entries live in this browser only. Export a backup now and then.</p>
+</div>
+
+<div id="report"></div>
+<script>
+const KEY='devlog.entries.v1';
+const $=id=>document.getElementById(id);
+const F=['title','did','learned','blockers','next','tags','hours'];
+let entries=load();
+const CK='devlog.cycle.v1',AK='devlog.archive.v1';
+function loadJ(k,d){try{return JSON.parse(localStorage.getItem(k))||d}catch(e){return d}}
+let cycle=loadJ(CK,null),archive=loadJ(AK,[]);
+if(!cycle)cycle={num:archive.length+1,start:entries.length?entries.map(e=>e.date).sort()[0]:today()};
+function saveMeta(){try{localStorage.setItem(CK,JSON.stringify(cycle));localStorage.setItem(AK,JSON.stringify(archive))}catch(e){alert('Could not save: storage is full or blocked')}}
+function lastDate(){return entries.length?entries.map(e=>e.date).sort().pop():today()}
+function dayNo(){return Math.floor((new Date(today()+'T00:00')-new Date(cycle.start+'T00:00'))/864e5)+1}
+
+function load(){try{return JSON.parse(localStorage.getItem(KEY))||[]}catch(e){return []}}
+function persist(){try{localStorage.setItem(KEY,JSON.stringify(entries))}catch(e){flash('Could not save: storage is full or blocked')}}
+function today(){const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,10)}
+function flash(t){$('msg').textContent=t;setTimeout(()=>$('msg').textContent='',2500)}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+
+function clearForm(){F.forEach(f=>$(f).value='');$('date').value=today()}
+function fill(date){
+  const e=entries.find(x=>x.date===date);
+  F.forEach(f=>$(f).value=e?(e[f]??''):'');
+  $('date').value=date;
+}
+$('date').addEventListener('change',()=>fill($('date').value));
+
+$('save').onclick=()=>{
+  const date=$('date').value;
+  if(!date)return flash('Pick a date');
+  const e={date};F.forEach(f=>e[f]=$(f).value.trim());
+  if(!e.title&&!e.did&&!e.learned)return flash('Write something first');
+  const i=entries.findIndex(x=>x.date===date);
+  i>=0?entries[i]=e:entries.push(e);
+  entries.sort((a,b)=>b.date.localeCompare(a.date));
+  persist();render();flash(i>=0?'Entry updated':'Entry saved');
+};
+$('clear').onclick=clearForm;
+$('search').oninput=render;
+
+function streak(){
+  const set=new Set(entries.map(e=>e.date));
+  const d=new Date();let n=0;
+  const fmt=x=>{const t=new Date(x);t.setMinutes(t.getMinutes()-t.getTimezoneOffset());return t.toISOString().slice(0,10)};
+  if(!set.has(fmt(d)))d.setDate(d.getDate()-1);
+  while(set.has(fmt(d))){n++;d.setDate(d.getDate()-1)}
+  return n;
+}
+
+function render(){
+  renderCycle();
+  $('sTotal').textContent=entries.length;
+  $('sStreak').textContent=streak();
+  $('sHours').textContent=+entries.reduce((s,e)=>s+(parseFloat(e.hours)||0),0).toFixed(1);
+  const q=$('search').value.toLowerCase().trim();
+  const list=entries.filter(e=>!q||JSON.stringify(e).toLowerCase().includes(q));
+  if(!list.length){$('list').innerHTML='<div class="empty">'+(entries.length?'No matches.':'No entries yet. Write today\'s first one above.')+'</div>';return}
+  $('list').innerHTML=list.map(e=>{
+    const sec=(k,v)=>v?`<p><span class="k">${k}</span><br>${esc(v)}</p>`:'';
+    const tags=(e.tags||'').split(',').map(t=>t.trim()).filter(Boolean).map(t=>`<span class="tag">${esc(t)}</span>`).join('');
+    return `<div class="entry"><div class="meta">${esc(new Date(e.date+'T00:00').toDateString())}${e.hours?' · '+esc(e.hours)+'h':''}</div>
+    <h3>${esc(e.title||'Untitled')}</h3>${sec('Did',e.did)}${sec('Learned',e.learned)}${sec('Blockers',e.blockers)}${sec('Next',e.next)}
+    <div>${tags}</div>
+    <div class="act"><button data-edit="${e.date}">Edit</button> <button class="del" data-del="${e.date}">Delete</button></div></div>`}).join('');
+}
+$('list').onclick=ev=>{
+  const ed=ev.target.dataset.edit,dl=ev.target.dataset.del;
+  if(ed){fill(ed);scrollTo({top:0,behavior:'smooth'})}
+  if(dl&&confirm('Delete the entry for '+dl+'?')){entries=entries.filter(e=>e.date!==dl);persist();render()}
+};
+
+function renderCycle(){
+  const n=Math.max(1,dayNo());
+  const note=n>=30?`<div class="meta">${n>30?'Your 30 days are over.':'Day 30 reached.'} Save the PDF, then start the next cycle.</div>`:'';
+  const past=archive.map((a,i)=>`<div><span>Cycle ${a.num}: ${a.start} to ${a.end}, ${a.entries.length} entries</span><button data-pdf="${i}">PDF</button></div>`).join('');
+  $('cycle').innerHTML=`<div class="cyc"><b>Cycle ${cycle.num}</b>, day ${Math.min(n,30)} of 30, ${entries.length} entries</div><div class="pb"><i style="width:${Math.min(100,n/30*100)}%"></i></div>${note}
+  <div class="bar"><button class="p" id="pdfNow">Save PDF of this cycle</button><button id="newCycle">Start next cycle</button></div>
+  ${past?'<div class="past"><b>Past cycles</b>'+past+'</div>':''}`;
+}
+function buildReport(title,list,start,end){
+  const L=[...list].sort((a,b)=>a.date.localeCompare(b.date));
+  const hrs=+L.reduce((s,e)=>s+(parseFloat(e.hours)||0),0).toFixed(1);
+  const sec=(k,v)=>v?`<p><b>${k}:</b> ${esc(v)}</p>`:'';
+  $('report').innerHTML=`<h1>${esc(title)}</h1><p>${start} to ${end}. ${L.length} entries, ${hrs} hours coded.</p>`+L.map(e=>`<div class="re"><h3>${esc(new Date(e.date+'T00:00').toDateString())}: ${esc(e.title||'Untitled')}${e.hours?' ('+esc(e.hours)+'h)':''}</h3>${sec('Did',e.did)}${sec('Learned',e.learned)}${sec('Blockers',e.blockers)}${sec('Next',e.next)}${sec('Tags',e.tags)}</div>`).join('');
+  document.title=title.replace(/\s+/g,'-');
+  window.onafterprint=()=>{document.title='Dev Log'};
+  window.print();
+}
+$('cycle').onclick=ev=>{
+  const t=ev.target;
+  if(t.id==='pdfNow'){
+    if(!entries.length)return alert('No entries in this cycle yet.');
+    buildReport('Dev Log Cycle '+cycle.num,entries,cycle.start,lastDate());
+  }
+  if(t.id==='newCycle'){
+    if(!entries.length)return alert('This cycle has no entries to archive.');
+    if(!confirm('Did you save the PDF for Cycle '+cycle.num+'?\n\nStarting the next cycle moves these '+entries.length+' entries into Past cycles (still kept, and included in backups) and gives you an empty journal.'))return;
+    archive.push({num:cycle.num,start:cycle.start,end:lastDate(),entries});
+    cycle={num:cycle.num+1,start:today()};entries=[];
+    persist();saveMeta();clearForm();render();
+  }
+  if(t.dataset.pdf!==undefined){
+    const a=archive[+t.dataset.pdf];
+    buildReport('Dev Log Cycle '+a.num,a.entries,a.start,a.end);
+  }
+};
+
+$('exp').onclick=()=>{
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify({entries,cycle,archive},null,2)],{type:'application/json'}));
+  a.download='devlog-backup-'+today()+'.json';a.click();
+};
+$('imp').onclick=()=>$('file').click();
+$('file').onchange=async()=>{
+  try{
+    const data=JSON.parse(await $('file').files[0].text());
+    const inc=Array.isArray(data)?data:data.entries;
+    if(!Array.isArray(inc))throw 0;
+    const map=new Map(entries.map(e=>[e.date,e]));
+    inc.forEach(e=>e&&e.date&&map.set(e.date,e));
+    if(!Array.isArray(data)){
+      const am=new Map(archive.map(a=>[a.num,a]));
+      (data.archive||[]).forEach(a=>a&&a.num&&am.set(a.num,a));
+      archive=[...am.values()].sort((a,b)=>a.num-b.num);
+      if(data.cycle&&data.cycle.num>=cycle.num)cycle=data.cycle;
+      saveMeta();
+    }
+    entries=[...map.values()].sort((a,b)=>b.date.localeCompare(a.date));
+    persist();render();flash('Backup imported');
+  }catch(e){flash('That file is not a valid backup')}
+  $('file').value='';
+};
+
+clearForm();fill(today());render();
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>
