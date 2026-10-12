@@ -20,9 +20,9 @@ h1{font-size:1.7rem;margin:.2em 0 0;letter-spacing:-.01em}
 .stat{flex:1;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
 .stat b{display:block;font-size:1.4rem}.stat span{color:var(--mute);font-size:.8rem}
 label{display:block;font-size:.85rem;color:var(--mute);margin:12px 0 4px;font-family:system-ui,sans-serif}
-input,textarea{width:100%;font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px}
+input,textarea,select{width:100%;font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px}
 textarea{min-height:84px;resize:vertical}
-input:focus,textarea:focus,button:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+input:focus,textarea:focus,select:focus,button:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
 .row{display:flex;gap:10px}.row>*{flex:1}
 button{font:600 .95rem system-ui,sans-serif;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:10px 16px;border-radius:8px;cursor:pointer}
 button.p{background:var(--acc);border-color:var(--acc);color:#fff}
@@ -37,8 +37,12 @@ hr{border:0;border-top:1px solid var(--line);margin:28px 0 14px}
 .cyc{font:.95rem system-ui,sans-serif}.pb{height:8px;background:var(--line);border-radius:9px;margin:8px 0;overflow:hidden}.pb i{display:block;height:100%;background:var(--acc)}
 .cycle{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin:14px 0}
 .past{margin-top:12px;font:.85rem system-ui,sans-serif;color:var(--mute)}.past div{display:flex;justify-content:space-between;align-items:center;padding:4px 0}.past button{padding:3px 10px;font-size:.8rem}
+.mono,pre.code{font:.85rem ui-monospace,Consolas,monospace}pre.code{background:var(--acc2);padding:8px;border-radius:6px;overflow-x:auto;white-space:pre-wrap;margin:.5em 0 0}
+.chips button,button.tag{padding:2px 9px;font-size:.78rem;border-radius:99px;background:var(--acc2);color:var(--acc);border:0;margin:4px 4px 0 0;font-weight:500}
+.grid{display:grid;grid-template-columns:repeat(10,1fr);gap:4px;margin:10px 0}.grid button{aspect-ratio:1;padding:0;border:0;border-radius:4px;font-size:.68rem;font-weight:500;background:var(--line);color:var(--mute)}
+.grid .l1{background:var(--acc2);color:var(--ink)}.grid .l2{background:color-mix(in srgb,var(--acc) 55%,var(--card));color:var(--ink)}.grid .l3{background:var(--acc);color:#fff}.grid .today{outline:2px solid var(--ink);outline-offset:1px}
 #report{display:none}
-@media print{.wrap{display:none}body{background:#fff}#report{display:block;color:#000;background:#fff;font:11.5pt/1.5 Georgia,serif}#report h1{font-size:20pt;margin:0}#report h3{margin:0}.re{break-inside:avoid;border-bottom:1px solid #bbb;padding:10px 0}.re p{margin:.3em 0;white-space:pre-wrap}}
+@media print{.wrap{display:none}body{background:#fff}#report{display:block;color:#000;background:#fff;font:11.5pt/1.5 Georgia,serif}#report h1{font-size:20pt;margin:0}#report h3{margin:0}.re pre{font:9.5pt ui-monospace,Consolas,monospace;white-space:pre-wrap;background:#f1f1f1;padding:6px}.re{break-inside:avoid;border-bottom:1px solid #bbb;padding:10px 0}.re p{margin:.3em 0;white-space:pre-wrap}}
 .empty{color:var(--mute);text-align:center;padding:24px}
 </style>
 </head>
@@ -59,17 +63,24 @@ hr{border:0;border-top:1px solid var(--line);margin:28px 0 14px}
     <div><label for="hours">Hours coded</label><input type="number" id="hours" min="0" step="0.5" placeholder="2.5"></div>
   </div>
   <label for="title">What did you work on?</label>
-  <input id="title" placeholder="e.g. DeepGuard training loop">
+  <input id="title" placeholder="e.g. Tuning loss weights with Optuna">
+  <div class="row">
+    <div><label for="project">Project</label><input id="project" list="projects" placeholder="Pick or type"><datalist id="projects"></datalist></div>
+    <div><label for="focus">Focus today</label><select id="focus"><option value="">Not rated</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
+  </div>
   <label for="did">What I did</label>
   <textarea id="did"></textarea>
   <label for="learned">What I learned</label>
   <textarea id="learned"></textarea>
   <label for="blockers">Blockers / bugs</label>
   <textarea id="blockers"></textarea>
+  <label for="code">Code or commands worth keeping</label>
+  <textarea id="code" class="mono" spellcheck="false"></textarea>
   <label for="next">Next step</label>
   <input id="next">
   <label for="tags">Tags (comma separated)</label>
   <input id="tags" placeholder="python, pytorch, react">
+  <div class="chips" id="chips"></div>
   <div class="bar">
     <button class="p" id="save">Save entry</button>
     <button id="clear">Clear form</button>
@@ -77,7 +88,7 @@ hr{border:0;border-top:1px solid var(--line);margin:28px 0 14px}
   </div>
 
   <hr>
-  <input id="search" type="search" placeholder="Search entries or tags">
+  <div class="row"><input id="search" type="search" placeholder="Search entries, tags, code"><select id="fproj" aria-label="Filter by project"></select></div>
   <div id="list"></div>
 
   <hr>
@@ -93,7 +104,9 @@ hr{border:0;border-top:1px solid var(--line);margin:28px 0 14px}
 <script>
 const KEY='devlog.entries.v1';
 const $=id=>document.getElementById(id);
-const F=['title','did','learned','blockers','next','tags','hours'];
+const F=['title','project','focus','did','learned','blockers','code','next','tags','hours'];
+const SEED_P=['DeepGuard','From Trivia to Text (NLP research)','ShrinkIt URL shortener','Portfolio website','Advanced Python for Data Science'];
+const SEED_T=['python','pytorch','fastapi','docker','postgresql','pytest','latex','pandas','javascript','debugging'];
 let entries=load();
 const CK='devlog.cycle.v1',AK='devlog.archive.v1';
 function loadJ(k,d){try{return JSON.parse(localStorage.getItem(k))||d}catch(e){return d}}
@@ -125,10 +138,10 @@ $('save').onclick=()=>{
   const i=entries.findIndex(x=>x.date===date);
   i>=0?entries[i]=e:entries.push(e);
   entries.sort((a,b)=>b.date.localeCompare(a.date));
-  persist();render();flash(i>=0?'Entry updated':'Entry saved');
+  persist();try{localStorage.removeItem('devlog.draft')}catch(x){}render();flash(i>=0?'Entry updated':'Entry saved');
 };
 $('clear').onclick=clearForm;
-$('search').oninput=render;
+$('search').oninput=render;$('fproj').onchange=render;
 
 function streak(){
   const set=new Set(entries.map(e=>e.date));
@@ -139,62 +152,97 @@ function streak(){
   return n;
 }
 
+function addDays(x,n){const d=new Date(x+'T00:00');d.setDate(d.getDate()+n);d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,10)}
+function saveDraft(){try{const d={date:$('date').value};F.forEach(f=>d[f]=$(f).value);localStorage.setItem('devlog.draft',JSON.stringify(d))}catch(e){}}
+F.forEach(f=>$(f).addEventListener('input',saveDraft));
+$('chips').onclick=ev=>{const t=ev.target.dataset.chip;if(!t)return;const c=$('tags').value.split(',').map(x=>x.trim()).filter(Boolean);if(!c.includes(t))c.push(t);$('tags').value=c.join(', ');saveDraft()};
+
+function lists(){
+  const all=archive.flatMap(a=>a.entries).concat(entries);
+  const pr=[...new Set([...SEED_P,...all.map(e=>e.project).filter(Boolean)])];
+  $('projects').innerHTML=pr.map(p=>`<option value="${esc(p)}">`).join('');
+  const cur=$('fproj').value;
+  $('fproj').innerHTML='<option value="">All projects</option>'+pr.map(p=>`<option>${esc(p)}</option>`).join('');
+  $('fproj').value=cur;
+  const c={};all.forEach(e=>(e.tags||'').split(',').forEach(t=>{t=t.trim().toLowerCase();if(t)c[t]=(c[t]||0)+1}));
+  const tg=[...new Set([...Object.keys(c).sort((a,b)=>c[b]-c[a]).slice(0,8),...SEED_T])].slice(0,12);
+  $('chips').innerHTML=tg.map(t=>`<button type="button" data-chip="${esc(t)}">${esc(t)}</button>`).join('');
+}
+
 function render(){
-  renderCycle();
+  renderCycle();lists();
   $('sTotal').textContent=entries.length;
   $('sStreak').textContent=streak();
   $('sHours').textContent=+entries.reduce((s,e)=>s+(parseFloat(e.hours)||0),0).toFixed(1);
-  const q=$('search').value.toLowerCase().trim();
-  const list=entries.filter(e=>!q||JSON.stringify(e).toLowerCase().includes(q));
+  const q=$('search').value.toLowerCase().trim(),fp=$('fproj').value;
+  const list=entries.filter(e=>(!q||JSON.stringify(e).toLowerCase().includes(q))&&(!fp||e.project===fp));
   if(!list.length){$('list').innerHTML='<div class="empty">'+(entries.length?'No matches.':'No entries yet. Write today\'s first one above.')+'</div>';return}
   $('list').innerHTML=list.map(e=>{
     const sec=(k,v)=>v?`<p><span class="k">${k}</span><br>${esc(v)}</p>`:'';
-    const tags=(e.tags||'').split(',').map(t=>t.trim()).filter(Boolean).map(t=>`<span class="tag">${esc(t)}</span>`).join('');
-    return `<div class="entry"><div class="meta">${esc(new Date(e.date+'T00:00').toDateString())}${e.hours?' · '+esc(e.hours)+'h':''}</div>
-    <h3>${esc(e.title||'Untitled')}</h3>${sec('Did',e.did)}${sec('Learned',e.learned)}${sec('Blockers',e.blockers)}${sec('Next',e.next)}
+    const tags=(e.tags||'').split(',').map(t=>t.trim()).filter(Boolean).map(t=>`<button class="tag" data-tag="${esc(t)}">${esc(t)}</button>`).join('');
+    return `<div class="entry"><div class="meta">${esc(new Date(e.date+'T00:00').toDateString())}${e.hours?', '+esc(e.hours)+'h':''}${e.focus?', focus '+esc(e.focus)+'/5':''}${e.project?', '+esc(e.project):''}</div>
+    <h3>${esc(e.title||'Untitled')}</h3>${sec('Did',e.did)}${sec('Learned',e.learned)}${sec('Blockers',e.blockers)}${sec('Next',e.next)}${e.code?`<pre class="code">${esc(e.code)}</pre>`:''}
     <div>${tags}</div>
     <div class="act"><button data-edit="${e.date}">Edit</button> <button class="del" data-del="${e.date}">Delete</button></div></div>`}).join('');
 }
 $('list').onclick=ev=>{
-  const ed=ev.target.dataset.edit,dl=ev.target.dataset.del;
-  if(ed){fill(ed);scrollTo({top:0,behavior:'smooth'})}
-  if(dl&&confirm('Delete the entry for '+dl+'?')){entries=entries.filter(e=>e.date!==dl);persist();render()}
+  const d=ev.target.dataset;
+  if(d.edit){fill(d.edit);scrollTo({top:0,behavior:'smooth'})}
+  if(d.tag){$('search').value=d.tag;render()}
+  if(d.del&&confirm('Delete the entry for '+d.del+'?')){entries=entries.filter(e=>e.date!==d.del);persist();render()}
 };
 
 function renderCycle(){
   const n=Math.max(1,dayNo());
   const note=n>=30?`<div class="meta">${n>30?'Your 30 days are over.':'Day 30 reached.'} Save the PDF, then start the next cycle.</div>`:'';
+  const cells=Array.from({length:30},(_,i)=>{const d=addDays(cycle.start,i),e=entries.find(x=>x.date===d),h=e?(parseFloat(e.hours)||0):0;
+    return `<button class="${!e?'':h>=4?'l3':h>=2?'l2':'l1'}${d===today()?' today':''}" data-date="${d}" title="${d}">${i+1}</button>`}).join('');
   const past=archive.map((a,i)=>`<div><span>Cycle ${a.num}: ${a.start} to ${a.end}, ${a.entries.length} entries</span><button data-pdf="${i}">PDF</button></div>`).join('');
-  $('cycle').innerHTML=`<div class="cyc"><b>Cycle ${cycle.num}</b>, day ${Math.min(n,30)} of 30, ${entries.length} entries</div><div class="pb"><i style="width:${Math.min(100,n/30*100)}%"></i></div>${note}
-  <div class="bar"><button class="p" id="pdfNow">Save PDF of this cycle</button><button id="newCycle">Start next cycle</button></div>
+  $('cycle').innerHTML=`<div class="cyc"><b>Cycle ${cycle.num}</b>, day ${Math.min(n,30)} of 30, ${entries.length} entries</div>
+  <input id="goal" placeholder="Goal for these 30 days" value="${esc(cycle.goal||'')}" aria-label="Cycle goal">
+  <div class="grid">${cells}</div><div class="meta">Darker squares mean more hours. Tap a day to open it.</div>${note}
+  <div class="bar"><button class="p" id="pdfNow">Save PDF</button><button id="mdNow">Export Markdown</button><button id="newCycle">Start next cycle</button></div>
   ${past?'<div class="past"><b>Past cycles</b>'+past+'</div>':''}`;
 }
-function buildReport(title,list,start,end){
+function summary(L){
+  const hp={},tc={};let fs=0,fn=0;
+  L.forEach(e=>{const p=e.project||'No project';hp[p]=(hp[p]||0)+(parseFloat(e.hours)||0);(e.tags||'').split(',').forEach(t=>{t=t.trim().toLowerCase();if(t)tc[t]=(tc[t]||0)+1});if(+e.focus){fs+=+e.focus;fn++}});
+  const top=o=>Object.entries(o).sort((a,b)=>b[1]-a[1]);
+  return `<p><b>Hours by project:</b> ${top(hp).map(([p,h])=>esc(p)+' ('+(+h.toFixed(1))+'h)').join(', ')||'none'}</p><p><b>Top tags:</b> ${top(tc).slice(0,6).map(([t,n])=>esc(t)+' x'+n).join(', ')||'none'}</p><p><b>Average focus:</b> ${fn?(fs/fn).toFixed(1)+' / 5':'not rated'}</p>`;
+}
+function buildReport(title,list,start,end,goal){
   const L=[...list].sort((a,b)=>a.date.localeCompare(b.date));
   const hrs=+L.reduce((s,e)=>s+(parseFloat(e.hours)||0),0).toFixed(1);
   const sec=(k,v)=>v?`<p><b>${k}:</b> ${esc(v)}</p>`:'';
-  $('report').innerHTML=`<h1>${esc(title)}</h1><p>${start} to ${end}. ${L.length} entries, ${hrs} hours coded.</p>`+L.map(e=>`<div class="re"><h3>${esc(new Date(e.date+'T00:00').toDateString())}: ${esc(e.title||'Untitled')}${e.hours?' ('+esc(e.hours)+'h)':''}</h3>${sec('Did',e.did)}${sec('Learned',e.learned)}${sec('Blockers',e.blockers)}${sec('Next',e.next)}${sec('Tags',e.tags)}</div>`).join('');
+  $('report').innerHTML=`<h1>${esc(title)}</h1><p>${start} to ${end}. ${L.length} entries, ${hrs} hours coded.</p>${goal?`<p><b>Goal:</b> ${esc(goal)}</p>`:''}${summary(L)}<hr>`+L.map(e=>`<div class="re"><h3>${esc(new Date(e.date+'T00:00').toDateString())}: ${esc(e.title||'Untitled')}${e.hours?' ('+esc(e.hours)+'h)':''}</h3>${sec('Project',e.project)}${sec('Focus',e.focus?e.focus+'/5':'')}${sec('Did',e.did)}${sec('Learned',e.learned)}${sec('Blockers',e.blockers)}${sec('Next',e.next)}${e.code?`<pre>${esc(e.code)}</pre>`:''}${sec('Tags',e.tags)}</div>`).join('');
   document.title=title.replace(/\s+/g,'-');
   window.onafterprint=()=>{document.title='Dev Log'};
   window.print();
 }
+function mdExport(title,list,start,end,goal){
+  const L=[...list].sort((a,b)=>a.date.localeCompare(b.date));
+  let m=`# ${title}\n\n${start} to ${end}\n\n`+(goal?`**Goal:** ${goal}\n\n`:'');
+  L.forEach(e=>{m+=`## ${e.date}: ${e.title||'Untitled'}\n`+(e.project?`Project: ${e.project}  \n`:'')+(e.hours?`Hours: ${e.hours}  \n`:'')+(e.focus?`Focus: ${e.focus}/5\n`:'')+'\n';
+    [['Did',e.did],['Learned',e.learned],['Blockers',e.blockers],['Next',e.next]].forEach(([k,v])=>{if(v)m+=`**${k}:** ${v}\n\n`});
+    if(e.code)m+='```\n'+e.code+'\n```\n\n';if(e.tags)m+=`Tags: ${e.tags}\n\n`});
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([m],{type:'text/markdown'}));a.download=title.replace(/\s+/g,'-')+'.md';a.click();
+}
+$('cycle').onchange=ev=>{if(ev.target.id==='goal'){cycle.goal=ev.target.value.trim();saveMeta()}};
 $('cycle').onclick=ev=>{
   const t=ev.target;
-  if(t.id==='pdfNow'){
+  if(t.dataset.date){fill(t.dataset.date);scrollTo({top:$('date').offsetTop-20,behavior:'smooth'})}
+  if(t.id==='pdfNow'||t.id==='mdNow'){
     if(!entries.length)return alert('No entries in this cycle yet.');
-    buildReport('Dev Log Cycle '+cycle.num,entries,cycle.start,lastDate());
+    (t.id==='pdfNow'?buildReport:mdExport)('Dev Log Cycle '+cycle.num,entries,cycle.start,lastDate(),cycle.goal);
   }
   if(t.id==='newCycle'){
     if(!entries.length)return alert('This cycle has no entries to archive.');
     if(!confirm('Did you save the PDF for Cycle '+cycle.num+'?\n\nStarting the next cycle moves these '+entries.length+' entries into Past cycles (still kept, and included in backups) and gives you an empty journal.'))return;
-    archive.push({num:cycle.num,start:cycle.start,end:lastDate(),entries});
-    cycle={num:cycle.num+1,start:today()};entries=[];
+    archive.push({num:cycle.num,start:cycle.start,end:lastDate(),goal:cycle.goal||'',entries});
+    cycle={num:cycle.num+1,start:today(),goal:''};entries=[];
     persist();saveMeta();clearForm();render();
   }
-  if(t.dataset.pdf!==undefined){
-    const a=archive[+t.dataset.pdf];
-    buildReport('Dev Log Cycle '+a.num,a.entries,a.start,a.end);
-  }
+  if(t.dataset.pdf!==undefined){const a=archive[+t.dataset.pdf];buildReport('Dev Log Cycle '+a.num,a.entries,a.start,a.end,a.goal)}
 };
 
 $('exp').onclick=()=>{
@@ -223,7 +271,10 @@ $('file').onchange=async()=>{
   $('file').value='';
 };
 
-clearForm();fill(today());render();
+clearForm();fill(today());
+const dr=loadJ('devlog.draft',null);
+if(dr&&dr.date===today()&&!entries.some(e=>e.date===today()))F.forEach(f=>$(f).value=dr[f]||'');
+render();
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script>
 </body>
